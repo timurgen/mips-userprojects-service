@@ -1,3 +1,4 @@
+import base64
 import json
 import requests
 from flask import Flask, Response
@@ -11,11 +12,14 @@ logger = logger.Logger('mips-userprojects-service')
 url = os.environ.get("baseurl")
 target_id_from_source = os.environ.get("target_id_from_source")
 target_id_value_from_source = os.environ.get("target_id_value_from_source")
+username = os.environ.get("mips_username")
+password = os.environ.get("mips_password")
+
 
 @app.route("/<path:path>", methods=["GET"])
 def get(path):
     request_url = "{0}{1}".format(url, path)
-    headers = {'Content-Type': 'application/json', 'sap-id': path }
+    headers = {'Content-Type': 'application/json', 'Authorization': 'Basic ' + base64.b64encode(username + ":" + password)}
 
     logger.info("Downloading data from: '%s'", request_url)
 
@@ -31,7 +35,7 @@ def get(path):
 def expand_entity(entity):
     target_id_value = entity[target_id_value_from_source]
     request_url = "{0}{1}".format(url, target_id_value)
-    headers = {'Content-Type': 'application/json', target_id_from_source: target_id_value }
+    headers = {'Content-Type': 'application/json', 'Authorization': 'Basic ' + base64.b64encode(username + ":" + password)}
 
     logger.info("Downloading data from: '%s'", request_url)
 
