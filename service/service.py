@@ -24,6 +24,7 @@ def get(path):
 
     try:
         response = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
+        logger.info("Response = " + response.text)
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
