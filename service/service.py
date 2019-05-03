@@ -1,11 +1,10 @@
-import base64
 import json
 import requests
-from flask import Flask, Response
+from flask import Flask, Response, request
 import os
 import logger
 import cherrypy
-from utils import parse_json_stream, entities_to_json
+from requests.auth import HTTPBasicAuth
 
 app = Flask(__name__)
 logger = logger.Logger('mips-userprojects-service')
@@ -19,12 +18,12 @@ password = os.environ.get("mips_password")
 @app.route("/<path:path>", methods=["GET"])
 def get(path):
     request_url = "{0}{1}".format(url, path)
-    headers = {'Content-Type': 'application/json', 'Authorization': 'Basic ' + base64.b64encode(username + ":" + password)}
+    headers = {'Content-Type': 'application/json'}
 
     logger.info("Downloading data from: '%s'", request_url)
 
     try:
-        response = requests.get(request_url, headers=headers)
+        response = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
@@ -35,12 +34,12 @@ def get(path):
 def expand_entity(entity):
     target_id_value = entity[target_id_value_from_source]
     request_url = "{0}{1}".format(url, target_id_value)
-    headers = {'Content-Type': 'application/json', 'Authorization': 'Basic ' + base64.b64encode(username + ":" + password)}
+    headers = {'Content-Type': 'application/json'}
 
     logger.info("Downloading data from: '%s'", request_url)
 
     try:
-        project_setup = requests.get(request_url, headers=headers)
+        project_setup = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
@@ -59,12 +58,11 @@ def receiver():
             if index > 0:
                 yield ","
 
-            entity = expand_entity(entity)
-            yield entities_to_json(entity)
+            yield json.dumps(entity)
         yield "]"
 
     # get entities from request
-    req_entities = parse_json_stream(requests.stream)
+    req_entities = json.dumps(request.get_json())
 
     # Generate the response
     try:
