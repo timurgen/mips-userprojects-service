@@ -25,6 +25,11 @@ def get(path):
     try:
         response = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
         logger.info("Response = " + response.text)
+        try:
+            json_object = json.loads(response.text)
+        except ValueError as ve:
+            logger.info(ve)
+
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
