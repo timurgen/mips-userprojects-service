@@ -19,11 +19,7 @@ password = os.environ.get("mips_password")
 def get(path):
     def generate(entities):
         yield "["
-        for index, entity in enumerate(entities):
-            if index > 0:
-                yield ","
-            logger.info(str(index) + ": " + json.dumps(entity))
-            yield json.dumps(entity)
+        yield entities
         yield "]"
 
     request_url = "{0}{1}".format(url, path)
