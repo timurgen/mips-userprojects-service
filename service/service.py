@@ -22,7 +22,7 @@ def get(path):
         for index, entity in enumerate(entities):
             if index > 0:
                 yield ","
-
+            logger.info(str(index) + ": " + json.dumps(entity))
             yield json.dumps(entity)
         yield "]"
 
@@ -33,7 +33,7 @@ def get(path):
 
     try:
         response = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
-        logger.info("Response = " + response.text)
+        #logger.info("Response = " + response.text)
 
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
