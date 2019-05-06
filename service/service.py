@@ -34,7 +34,7 @@ def get(path):
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
 
-    return Response(response=json.loads(response.text), mimetype='application/json')
+    return Response(response=json.loads("[" + response.text + "]"), mimetype='application/json')
 
 
 def expand_entity(entity):
