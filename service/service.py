@@ -25,16 +25,13 @@ def get(path):
     try:
         response = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
         logger.info("Response = " + response.text)
-        try:
-            json_object = json.loads(response.text)
-        except ValueError as ve:
-            logger.info(ve)
+        r = "[" + response.text + "]"
 
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
 
-    return Response(response=json.loads("[" + response.text + "]"), mimetype='application/json')
+    return Response(response=json.loads(r), mimetype='application/json')
 
 
 def expand_entity(entity):
