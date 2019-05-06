@@ -17,6 +17,15 @@ password = os.environ.get("mips_password")
 
 @app.route("/<path:path>", methods=["GET"])
 def get(path):
+    def generate(entities):
+        yield "["
+        for index, entity in enumerate(entities):
+            if index > 0:
+                yield ","
+
+            yield json.dumps(entity)
+        yield "]"
+
     request_url = "{0}{1}".format(url, path)
     headers = {'Content-Type': 'application/json'}
 
@@ -25,13 +34,12 @@ def get(path):
     try:
         response = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
         logger.info("Response = " + response.text)
-        r = "[" + response.text + "]"
 
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
 
-    return Response(response=json.dumps(r), mimetype='application/json')
+    return Response(response=generate(response.text), mimetype='application/json')
 
 
 def expand_entity(entity):
