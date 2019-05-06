@@ -24,7 +24,6 @@ def get(path):
 
     try:
         response = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
-        logger.info("Abandon all hope ye who enters")
         logger.info("Response = " + response.text)
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
@@ -41,13 +40,12 @@ def expand_entity(entity):
     logger.info("Downloading data from: '%s'", request_url)
 
     try:
-        project_setup = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
+        userproject = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
 
-    entity["projectsetup"] = project_setup
-    return entity
+    return userproject
 
 
 @app.route('/transform', methods=['POST'])
@@ -60,7 +58,7 @@ def receiver():
             if index > 0:
                 yield ","
 
-            yield json.dumps(entity)
+            yield expand_entity(json.dumps(entity))
         yield "]"
 
     # get entities from request
