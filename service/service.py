@@ -66,7 +66,7 @@ def receiver():
             if index > 0:
                 yield ","
 
-            yield json.dumps(expand_entity(json.dumps(entity)))
+            yield json.dumps(expand_entity(json.loads(entity)))
         yield "]"
 
     logger.info("baseurl: " + url)
@@ -75,7 +75,7 @@ def receiver():
     logger.info("Received entities: " + str(request.get_json()))
 
     # get entities from request
-    req_entities = json.loads(request.get_json())
+    req_entities = request.get_json()
 
     # Generate the response
     try:
