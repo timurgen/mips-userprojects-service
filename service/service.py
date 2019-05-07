@@ -72,11 +72,10 @@ def receiver():
     logger.info("baseurl: " + url)
     logger.info("target_id_from_source: " + target_id_from_source)
     logger.info("target_id_value_from_source: " + target_id_value_from_source)
+    logger.info("Received entities: " + request.get_json())
 
     # get entities from request
     req_entities = json.loads(request.get_json())
-
-    logger.info("Received entities: " + json.dumps(req_entities))
 
     # Generate the response
     try:
