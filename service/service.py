@@ -66,7 +66,7 @@ def receiver():
             if index > 0:
                 yield ","
 
-            yield json.dumps(expand_entity(json.loads(entity)))
+            yield json.dumps(expand_entity(entity))
         yield "]"
 
     logger.info("baseurl: " + url)
