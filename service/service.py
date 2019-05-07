@@ -11,8 +11,8 @@ logger = logger.Logger('mips-userprojects-service')
 url = os.environ.get("baseurl")
 expand_property_name = os.environ.get("expand_property_name")
 id_property_name = os.environ.get("id_property_name")
-username = os.environ.get("mips_username")
-password = os.environ.get("mips_password")
+username = os.environ.get("username")
+password = os.environ.get("password")
 
 
 @app.route("/<path:path>", methods=["GET"])
@@ -37,8 +37,6 @@ def get(path):
 
 
 def expand_entity(entity):
-    logger.info("Entity to expand: " + json.dumps(entity))
-
     id_property_name_value = entity[id_property_name]
     request_url = "{0}{1}".format(url, id_property_name_value)
     headers = {'Content-Type': 'application/json'}
