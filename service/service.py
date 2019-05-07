@@ -37,6 +37,8 @@ def get(path):
 
 
 def expand_entity(entity):
+    logger.info("Entity to expand: " + json.dumps(entity))
+    
     target_id_value = entity[target_id_value_from_source]
     request_url = "{0}{1}".format(url, target_id_value)
     headers = {'Content-Type': 'application/json'}
@@ -66,6 +68,10 @@ def receiver():
 
             yield json.dumps(expand_entity(json.dumps(entity)))
         yield "]"
+
+    logger.info("baseurl: " + url)
+    logger.info("target_id_from_source: " + target_id_from_source)
+    logger.info("target_id_value_from_source: " + target_id_value_from_source)
 
     # get entities from request
     req_entities = json.dumps(request.get_json())
