@@ -9,8 +9,8 @@ from requests.auth import HTTPBasicAuth
 app = Flask(__name__)
 logger = logger.Logger('mips-userprojects-service')
 url = os.environ.get("baseurl")
-target_id_from_source = os.environ.get("target_id_from_source")
-target_id_value_from_source = os.environ.get("target_id_value_from_source")
+expand_property_name = os.environ.get("expand_property_name")
+id_property_name = os.environ.get("id_property_name")
 username = os.environ.get("mips_username")
 password = os.environ.get("mips_password")
 
@@ -39,17 +39,15 @@ def get(path):
 def expand_entity(entity):
     logger.info("Entity to expand: " + json.dumps(entity))
 
-    target_id_value = entity[target_id_value_from_source]
-    request_url = "{0}{1}".format(url, target_id_value)
+    id_property_name_value = entity[id_property_name]
+    request_url = "{0}{1}".format(url, id_property_name_value)
     headers = {'Content-Type': 'application/json'}
 
     logger.info("Downloading data from: '%s'", request_url)
 
     try:
-        userproject = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
-        logger.info("Userproject: " + userproject.text)
-        entity[target_id_from_source] = json.loads(userproject.text)
-        logger.info("Expanded entity: " + json.dumps(entity))
+        expand_result = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
+        entity[expand_property_name] = json.loads(expand_result.text)
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
@@ -71,9 +69,8 @@ def receiver():
         yield "]"
 
     logger.info("baseurl: " + url)
-    logger.info("target_id_from_source: " + target_id_from_source)
-    logger.info("target_id_value_from_source: " + target_id_value_from_source)
-    logger.info("Received entities: " + str(request.get_json()))
+    logger.info("expand_property_name: " + expand_property_name)
+    logger.info("id_property_name: " + id_property_name)
 
     # get entities from request
     req_entities = request.get_json()
