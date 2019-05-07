@@ -47,8 +47,8 @@ def expand_entity(entity):
 
     try:
         userproject = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
-        logger.info("Userproject: " + userproject)
-        entity[target_id_from_source] = userproject
+        logger.info("Userproject: " + userproject.text)
+        entity[target_id_from_source] = json.loads(userproject.text)
         logger.info("Expanded entity: " + json.dumps(entity))
     except Exception as e:
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
