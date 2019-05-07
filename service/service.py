@@ -19,7 +19,7 @@ password = os.environ.get("mips_password")
 def get(path):
     def generate(entities):
         yield "["
-        yield entities
+        yield json.dumps(entities)
         yield "]"
 
     request_url = "{0}{1}".format(url, path)
@@ -35,7 +35,7 @@ def get(path):
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
 
-    return Response(response=json.dumps(generate(json.loads(response.text))), mimetype='application/json')
+    return Response(response=generate(json.loads(response.text)), mimetype='application/json')
 
 
 def expand_entity(entity):
