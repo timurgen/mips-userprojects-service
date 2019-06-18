@@ -99,6 +99,8 @@ def put(path):
             logger.info("trying post operation on id: " + project)
             response = requests.put(path, data=json.dumps(data), headers=headers, auth=HTTPBasicAuth(username, password))
             responses.append(dict({project: json.loads(response.text)}))
+            if response.status_code != 200:
+                return Response(status=response.status_code, response=response.text)
         except Exception as e:
             logger.error("Exception occurred on PUT operation on '%s': '%s'", path, e)
             return Response(status=response.status_code, response="An error occurred during transform of input")
