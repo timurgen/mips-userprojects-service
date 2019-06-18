@@ -80,6 +80,32 @@ def receiver():
         return Response(status=500, response="An error occurred during transform of input")
 
 
+@app.route('/<path:path>', methods=['POST'])
+def put(path):
+    """ HTTP transform POST handler """
+
+    headers = {'Content-Type': 'application/json'}
+    responses = []
+    req_entities = request.get_json()
+    for entity in req_entities:
+        project = str(entity["project_id"])
+        data = entity["data"]
+        path = url + path + project
+
+        logger.info("url: " + path)
+
+        # Generate PUT operation
+        try:
+            logger.info("trying post operation on id: " + project)
+            response = requests.put(path, data=data, headers=headers, auth=HTTPBasicAuth(username, password))
+            responses.append(dict({project: json.loads(response.text)}))
+        except Exception as e:
+            logger.error("Exception occurred on PUT operation on '%s': '%s'", path, e)
+            return Response(status=response.status_code, response="An error occurred during transform of input")
+
+    return Response(response=json.dumps(responses), mimetype='application/json')
+
+
 if __name__ == '__main__':
     cherrypy.tree.graft(app, '/')
 
