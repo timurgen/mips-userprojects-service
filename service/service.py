@@ -37,9 +37,9 @@ def get_entities_per_project(projects, path):
 
     for project in projects[data_key]:
         new_path = url + path + str(project[project_key])
-        logger.info("Trying GET operation on  '%s': '%s'", new_path, e)
+        logger.info("Trying GET operation on : '%s'", new_path)
         try:
-            response = requests.get(new_path, headers=headers)
+            response = requests.get(new_path, headers=headers, auth=HTTPBasicAuth(username, password))
             if response.status_code != 200:
                 logger.error("Exception occurred on GET operation on '%s': status_code : '%s'", new_path,
                              response.status_code)
@@ -119,7 +119,8 @@ def get_single_entities(path):
     headers = {'Content-Type': 'application/json'}
     projects_path = url + os.environ.get("project_path")
     try:
-        response = requests.get(projects_path,  headers=headers)
+        logger.info("Trying GET operation on : '%s'", projects_path)
+        response = requests.get(projects_path,  headers=headers, auth=HTTPBasicAuth(username, password))
         if response.status_code != 200:
             return Response(status=response.status_code, response=response.text)
     except Exception as e:
