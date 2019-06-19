@@ -32,7 +32,7 @@ def expand_entity(entity):
 
     return entity
 
-def get_entities_per_project(projects, path):
+def get_entities_per_project(projects, path, args):
     headers = {'Content-Type': 'application/json'}
 
     deduplicated_project_list= []
@@ -52,15 +52,15 @@ def get_entities_per_project(projects, path):
 
             entities = json.loads(response.text)
             for entity in entities[data_key]:
-                yield set_id(project, entity)
+                yield set_id(project, entity, args)
 
         except Exception as e:
             logger.error("Exception occurred on GET operation on '%s': '%s'", new_path, e)
 
 
-def set_id(projectid, entity):
+def set_id(projectid, entity, args):
     entity["ProjectId"] = projectid
-    entity["_id"] = str(projectid) + "-" + str(entity["Id"])
+    entity["_id"] = str(projectid) + "-" + str(entity[args.get('id')])
     return entity
 
 
@@ -139,6 +139,7 @@ def get_single_entities(path):
     try:
         logger.info("Trying GET operation on : '%s'", projects_path)
         response = requests.get(projects_path,  headers=headers, auth=HTTPBasicAuth(username, password))
+
         if response.status_code != 200:
             return Response(status=response.status_code, response=response.text)
     except Exception as e:
@@ -146,7 +147,7 @@ def get_single_entities(path):
         return Response(status=response.status_code, response="An error occurred during transform of input")
 
     return Response(response=stream_json(get_entities_per_project(
-        json.loads(response.text), path)), mimetype='application/json')
+        json.loads(response.text), path, request.args)), mimetype='application/json')
 
 
 if __name__ == '__main__':
