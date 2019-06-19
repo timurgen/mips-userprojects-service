@@ -146,7 +146,7 @@ def get_single_entities(path):
         return Response(status=response.status_code, response="An error occurred during transform of input")
 
     return Response(response=stream_json(get_entities_per_project(
-        json.loads(response.text)), path), mimetype='application/json')
+        json.loads(response.text), path)), mimetype='application/json')
 
 
 if __name__ == '__main__':
