@@ -13,28 +13,8 @@ expand_property_name = os.environ.get("expand_property_name")
 id_property_name = os.environ.get("id_property_name")
 username = os.environ.get("username")
 password = os.environ.get("password")
-
-
-@app.route("/<path:path>", methods=["GET"])
-def get(path):
-    def generate(entities):
-        yield "["
-        yield json.dumps(entities)
-        yield "]"
-
-    request_url = "{0}{1}".format(url, path)
-    headers = {'Content-Type': 'application/json'}
-
-    logger.info("Downloading data from: '%s'", request_url)
-
-    try:
-        response = requests.get(request_url, headers=headers, auth=HTTPBasicAuth(username, password))
-    except Exception as e:
-        logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
-        raise
-
-    return Response(response=generate(json.loads(response.text)), mimetype='application/json')
-
+project_key = os.environ.get("project_key")
+data_key = os.environ.get("data_key")
 
 def expand_entity(entity):
     id_property_name_value = entity[id_property_name]
@@ -50,6 +30,31 @@ def expand_entity(entity):
         logger.warn("Exception occurred when download data from '%s': '%s'", request_url, e)
         raise
 
+    return entity
+
+def get_entities_per_project(projects, path):
+    headers = {'Content-Type': 'application/json'}
+
+    for project in projects[data_key]:
+        new_path = url + path + str(project[project_key])
+        logger.info("Trying GET operation on  '%s': '%s'", new_path, e)
+        try:
+            response = requests.get(new_path, headers=headers)
+            if response.status_code != 200:
+                logger.error("Exception occurred on GET operation on '%s': status_code : '%s'", new_path,
+                             response.status_code)
+
+            entities = json.loads(response.text)
+            for entity in entities[data_key]:
+                yield json.dumps(set_id(project[project_key], entity))
+
+        except Exception as e:
+            logger.error("Exception occurred on GET operation on '%s': '%s'", new_path, e)
+
+
+def set_id(projectid, entity):
+    entity["ProjectId"] = projectid
+    entity["_id"] = str(projectid) + "-" + str(entity["Id"])
     return entity
 
 
@@ -107,6 +112,21 @@ def put(path):
 
     logger.info("responses : %s", json.dumps(responses))
     return Response(response=json.dumps(responses), mimetype='application/json')
+
+
+@app.route("/<path:path>", methods=["GET"])
+def get_single_entities(path):
+    headers = {'Content-Type': 'application/json'}
+    projects_path = url + os.environ.get("project_path")
+    try:
+        response = requests.get(projects_path,  headers=headers)
+        if response.status_code != 200:
+            return Response(status=response.status_code, response=response.text)
+    except Exception as e:
+        logger.error("Exception occurred on GET operation on '%s': '%s'", projects_path, e)
+        return Response(status=response.status_code, response="An error occurred during transform of input")
+
+    return Response(response=get_entities_per_project(json.loads(response.text), path), mimetype='application/json')
 
 
 if __name__ == '__main__':
