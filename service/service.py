@@ -35,8 +35,14 @@ def expand_entity(entity):
 def get_entities_per_project(projects, path):
     headers = {'Content-Type': 'application/json'}
 
+    deduplicated_project_list= []
+
     for project in projects[data_key]:
-        new_path = url + path + str(project[project_key])
+        if project[project_key] not in deduplicated_project_list:
+            deduplicated_project_list.append(project[project_key])
+
+    for project in deduplicated_project_list:
+        new_path = url + path + str(project)
         logger.info("Trying GET operation on : '%s'", new_path)
         try:
             response = requests.get(new_path, headers=headers, auth=HTTPBasicAuth(username, password))
