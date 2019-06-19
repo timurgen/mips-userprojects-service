@@ -64,6 +64,18 @@ def set_id(projectid, entity):
     return entity
 
 
+def stream_json(entity):
+    first = True
+    yield '['
+    for i, row in enumerate(entity):
+        if not first:
+            yield ','
+        else:
+            first = False
+        yield json.dumps(row)
+    yield ']'
+
+
 @app.route('/transform', methods=['POST'])
 def receiver():
     """ HTTP transform POST handler """
@@ -133,7 +145,8 @@ def get_single_entities(path):
         logger.error("Exception occurred on GET operation on '%s': '%s'", projects_path, e)
         return Response(status=response.status_code, response="An error occurred during transform of input")
 
-    return Response(response=get_entities_per_project(json.loads(response.text), path), mimetype='application/json')
+    return Response(response=stream_json(get_entities_per_project(
+        json.loads(response.text)), path), mimetype='application/json')
 
 
 if __name__ == '__main__':
