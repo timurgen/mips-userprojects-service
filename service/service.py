@@ -52,7 +52,7 @@ def get_entities_per_project(projects, path):
 
             entities = json.loads(response.text)
             for entity in entities[data_key]:
-                yield json.dumps(set_id(project[project_key], entity))
+                yield json.dumps(set_id(project, entity))
 
         except Exception as e:
             logger.error("Exception occurred on GET operation on '%s': '%s'", new_path, e)
