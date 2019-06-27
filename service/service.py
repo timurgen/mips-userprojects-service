@@ -36,7 +36,7 @@ def expand_entity(entity):
 def get_entities_per_project(projects, path, args):
     headers = {'Content-Type': 'application/json'}
 
-    deduplicated_project_list= []
+    deduplicated_project_list = []
 
     for project in projects[data_key]:
         if project[project_key] not in deduplicated_project_list:
@@ -62,10 +62,11 @@ def get_entities_per_project(projects, path, args):
 def get_project(projects):
     headers = {'Content-Type': 'application/json'}
 
-    deduplicated_project_list= []
+    deduplicated_project_list = []
 
     for project in projects[data_key]:
         if project[project_key] not in deduplicated_project_list:
+            deduplicated_project_list.append(project[project_key])
             project["_id"] = str(project[project_key])
             yield project
 
