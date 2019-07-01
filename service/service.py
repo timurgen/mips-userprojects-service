@@ -163,18 +163,18 @@ def get_single_entities(path):
         json.loads(response.text), path, request.args)), mimetype='application/json')
 
 
-@app.route("/projects", methods=["GET"])
-def get_projects():
+@app.route("/get/<path:path>", methods=["GET"])
+def get_projects(path):
     headers = {'Content-Type': 'application/json'}
-    projects_path = url + os.environ.get("project_path")
+    path = url + path
     try:
-        logger.info("Trying GET operation on : '%s'", projects_path)
-        response = requests.get(projects_path, headers=headers, auth=HTTPBasicAuth(username, password))
+        logger.info("Trying GET operation on : '%s'", path)
+        response = requests.get(path, headers=headers, auth=HTTPBasicAuth(username, password))
 
         if response.status_code != 200:
             return Response(status=response.status_code, response=response.text)
     except Exception as e:
-        logger.error("Exception occurred on GET operation on '%s': '%s'", projects_path, e)
+        logger.error("Exception occurred on GET operation on '%s': '%s'", path, e)
         return Response(status=response.status_code, response="An error occurred during transform of input")
 
     return Response(response=stream_json(get_project(
