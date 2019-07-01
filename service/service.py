@@ -59,16 +59,9 @@ def get_entities_per_project(projects, path, args):
             logger.error("Exception occurred on GET operation on '%s': '%s'", new_path, e)
 
 
-def get_project(projects):
-    headers = {'Content-Type': 'application/json'}
-
-    deduplicated_project_list = []
-
-    for project in projects[data_key]:
-        if project[project_key] not in deduplicated_project_list:
-            deduplicated_project_list.append(project[project_key])
-            project["_id"] = str(project[project_key])
-            yield project
+def get(data):
+    for d in data[data_key]:
+        yield d
 
 
 def set_id(projectid, entity, args):
@@ -177,7 +170,7 @@ def get_projects(path):
         logger.error("Exception occurred on GET operation on '%s': '%s'", path, e)
         return Response(status=response.status_code, response="An error occurred during transform of input")
 
-    return Response(response=stream_json(get_project(
+    return Response(response=stream_json(get(
         json.loads(response.text))), mimetype='application/json')
 
 
