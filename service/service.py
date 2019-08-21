@@ -61,6 +61,8 @@ def get_entities_per_project(projects, path, args):
         if project[PROJECT_KEY] not in deduplicated_project_list:
             deduplicated_project_list.append(project[PROJECT_KEY])
 
+    logging.info(f"Got {len(deduplicated_project_list)} unique projects")
+
     for project in deduplicated_project_list:
         new_path = URL + path + str(project)
         logging.info("Trying GET operation on : '%s'", new_path)
@@ -68,7 +70,8 @@ def get_entities_per_project(projects, path, args):
             response = requests.get(new_path, headers=MIPS_REQUEST_HEADERS, auth=HTTPBasicAuth(USERNAME, PASSWORD))
             response.raise_for_status()
             entities = json.loads(response.text)
-
+            logging.info(f"Got {len(entities[DATA_KEY])} entities for project {project}")
+            logging.debug(f'payload: {entities}')
             for entity in entities[DATA_KEY]:
                 yield set_id(project, entity, args)
 
