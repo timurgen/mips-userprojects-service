@@ -25,6 +25,11 @@ PORT = int(ENV('PORT', '5000'))
 CT = 'application/json'
 MIPS_REQUEST_HEADERS = {'Content-Type': CT}
 
+# these config params needed to fetch work order operations
+# through a HTTP transformation from "workorder" pipe
+TRANSFORM_PROJECT_ID = ENV('TRANSFORM_PROJECT_ID', 'mips-workorder:ProjectId')
+TRANSFORM_WORKORDER_ID = ENV('TRANSFORM_WORKORDER_ID', 'mips-workorder:Id')
+
 
 def expand_entity(entity):
     """
@@ -79,13 +84,14 @@ def get_entities_per_project(projects, path, args):
             logging.error("Exception occurred on GET operation on '%s': '%s'", new_path, exc)
 
 
-def get(data):
+def get(item):
     """
-
-    :param data:
-    :return:
+    Function iterates over items in DATA_KEY property of given item
+    Will throw KetError if DATA_KEY doesn't exist
+    :param item: dictionary which MUST contain DATA_KEY attribute of <class 'list'> type
+    :return: yields items from DATA_KEY property
     """
-    for item in data[DATA_KEY]:
+    for item in item[DATA_KEY]:
         yield item
 
 
@@ -179,7 +185,7 @@ def put(path):
             logging.error("Exception occurred on PUT operation on '%s': '%s'", path, exc)
             return Response(status=response.status_code, response="An error occurred during transform of input")
 
-    logging.info("responses : %s", json.dumps(responses))
+    logging.info(f"responses : {responses}")
     return Response(response=json.dumps(responses), mimetype=CT)
 
 
@@ -221,6 +227,56 @@ def get_projects(path):
 
     return Response(response=stream_json(get(
         json.loads(response.text))), mimetype=CT)
+
+
+@APP.route('/workorderoperation/<int:order_id>/<int:project_id>', methods=["GET"])
+def get_workorder_operation(order_id: int, project_id: int):
+    """
+    Endpoint to retrieve work order operations for given order and project
+    :param order_id: id of order
+    :param project_id: id of project
+    :return: list of order operations
+    """
+    path = f'{URL}construction/v1/WorkOrderOperation/WorkOrder/{order_id}/null/null/null/0/null/0/0/{project_id}'
+    try:
+        logging.debug(f"Trying GET operation on : {path}")
+        response = requests.get(path, headers=MIPS_REQUEST_HEADERS, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+        response.raise_for_status()
+    except IOError as exc:
+        logging.error(f"Exception occurred on GET operation on {path}: {exc}")
+        return Response(status=response.status_code, response="An error occurred during transform of input")
+
+    return Response(response=stream_json(get(json.loads(response.text))), mimetype=CT)
+
+
+@APP.route('/workorderoperation', methods=['POST'])
+def get_workorder_operations2():
+    """
+    This endpoint is intended to be used as a HTTP transform from Sesam appliance
+    and similar to get_workorder_operation
+    :return:
+    """
+    input_items = request.get_json()
+
+    def enrich_with_workorder_operations(item_list):
+        yield '['
+        first = True
+        for item in item_list:
+            if not first:
+                yield ','
+            else:
+                first = False
+            logging.debug(item)
+            project_id = item[TRANSFORM_PROJECT_ID]
+            order_id = item[TRANSFORM_WORKORDER_ID]
+            # we call get_workorder_operation endpoint on the same service to get details of work order
+            wo_operations = requests.get(f'http://localhost:5000/workorderoperation/{order_id}/{project_id}')
+            wo_operations.raise_for_status()
+            item['work_order_operations'] = json.loads(wo_operations.text)
+            yield json.dumps(item)
+        yield ']'
+
+    return Response(response=enrich_with_workorder_operations(input_items), mimetype=CT)
 
 
 if __name__ == '__main__':
