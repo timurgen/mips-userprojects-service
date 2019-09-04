@@ -3,11 +3,11 @@
 REST service to fetch data from MISP appliance into Sesam integration platform
 """
 import os
-import json
 import logging
 import requests
 from requests.auth import HTTPBasicAuth
 from flask import Flask, Response, request
+import rapidjson
 
 APP = Flask(__name__)
 
@@ -44,7 +44,7 @@ def expand_entity(entity):
 
     try:
         expand_result = requests.get(request_url, headers=MIPS_REQUEST_HEADERS, auth=HTTPBasicAuth(USERNAME, PASSWORD))
-        entity[EXPAND_PROPERTY_NAME] = json.loads(expand_result.text)
+        entity[EXPAND_PROPERTY_NAME] = rapidjson.loads(expand_result.text)
     except Exception as exc:
         logging.warning("Exception occurred when download data from '%s': '%s'", request_url, exc)
         raise exc
@@ -66,22 +66,40 @@ def get_entities_per_project(projects, path, args):
         if project[PROJECT_KEY] not in deduplicated_project_list:
             deduplicated_project_list.append(project[PROJECT_KEY])
 
-    logging.info(f"Got {len(deduplicated_project_list)} unique projects")
+    if not args.get('projects'):
+        allowed_projects = ['all']
+    else:
+        allowed_projects = args.get('projects').split(',')
+
+    logging.debug(f'allowed projects {allowed_projects}')
+    logging.info(f"got {len(deduplicated_project_list)} unique projects")
 
     for project in deduplicated_project_list:
+        if 'all' not in allowed_projects and str(project) not in allowed_projects:
+            logging.debug(f'project {project} not in allowed projects and will be skipped')
+            continue
+        exc_flag = ""
         new_path = URL + path + str(project)
-        logging.info("Trying GET operation on : '%s'", new_path)
+        logging.debug("trying GET operation on : '%s'", new_path)
         try:
             response = requests.get(new_path, headers=MIPS_REQUEST_HEADERS, auth=HTTPBasicAuth(USERNAME, PASSWORD))
             response.raise_for_status()
-            entities = json.loads(response.text)
-            logging.info(f"Got {len(entities[DATA_KEY])} entities for project {project}")
-            logging.debug(f'payload: {entities}')
-            for entity in entities[DATA_KEY]:
-                yield set_id(project, entity, args)
+            logging.debug(f"request completed in {response.elapsed} seconds")
+            entities = rapidjson.loads(response.text)
 
+            logging.debug(f"got {len(entities[DATA_KEY])} entities for project {project}")
+            if len(entities[DATA_KEY]) > 0:
+                logging.debug(f'payload (1 element): {entities[DATA_KEY][0]}')
+
+            for entity in entities[DATA_KEY]:
+                entity["ProjectId"] = project
+                yield set_id(project, entity, args)
         except requests.exceptions.HTTPError as exc:
-            logging.error("Exception occurred on GET operation on '%s': '%s'", new_path, exc)
+            logging.error("exception occurred on GET operation on '%s': '%s'", new_path, exc)
+            exc_flag = "un"
+            if response.text:
+                logging.error(f'Response: {response.text}')
+        logging.debug(f"project {str(project)} executed {exc_flag}successfully")
 
 
 def get(item):
@@ -103,7 +121,6 @@ def set_id(project_id, entity, args):
     :param args:
     :return:
     """
-    entity["ProjectId"] = project_id
     entity["_id"] = str(project_id) + "-" + str(entity[args.get('id')])
     return entity
 
@@ -121,7 +138,7 @@ def stream_json(entity):
             yield ','
         else:
             first = False
-        yield json.dumps(row)
+        yield rapidjson.dumps(row)
     yield ']'
 
 
@@ -143,7 +160,7 @@ def receiver():
             if index > 0:
                 yield ","
 
-            yield json.dumps(expand_entity(entity))
+            yield rapidjson.dumps(expand_entity(entity))
         yield "]"
 
     logging.info(f"baseurl: {URL}")
@@ -177,16 +194,16 @@ def put(path):
         # Generate PUT operation
         try:
             logging.info(f"trying post operation on id: {project}")
-            response = requests.put(path, data=json.dumps(data), headers=MIPS_REQUEST_HEADERS,
+            response = requests.put(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS,
                                     auth=HTTPBasicAuth(USERNAME, PASSWORD))
             response.raise_for_status()
-            responses.append(dict({project: json.loads(response.text)}))
+            responses.append(dict({project: rapidjson.loads(response.text)}))
         except requests.exceptions.HTTPError as exc:
             logging.error("Exception occurred on PUT operation on '%s': '%s'", path, exc)
             return Response(status=response.status_code, response="An error occurred during transform of input")
 
     logging.info(f"responses : {responses}")
-    return Response(response=json.dumps(responses), mimetype=CT)
+    return Response(response=rapidjson.dumps(responses), mimetype=CT)
 
 
 @APP.route("/<path:path>", methods=["GET"])
@@ -206,7 +223,7 @@ def get_single_entities(path):
         return Response(status=response.status_code, response="An error occurred during transform of input")
 
     return Response(response=stream_json(get_entities_per_project(
-        json.loads(response.text), path, request.args)), mimetype=CT)
+        rapidjson.loads(response.text), path, request.args)), mimetype=CT)
 
 
 @APP.route("/get/<path:path>", methods=["GET"])
@@ -226,7 +243,7 @@ def get_projects(path):
         return Response(status=response.status_code, response="An error occurred during transform of input")
 
     return Response(response=stream_json(get(
-        json.loads(response.text))), mimetype=CT)
+        rapidjson.loads(response.text))), mimetype=CT)
 
 
 @APP.route('/workorderoperation/<int:order_id>/<int:project_id>', methods=["GET"])
@@ -246,7 +263,7 @@ def get_workorder_operation(order_id: int, project_id: int):
         logging.error(f"Exception occurred on GET operation on {path}: {exc}")
         return Response(status=response.status_code, response="An error occurred during transform of input")
 
-    return Response(response=stream_json(get(json.loads(response.text))), mimetype=CT)
+    return Response(response=stream_json(get(rapidjson.loads(response.text))), mimetype=CT)
 
 
 @APP.route('/workorderoperation', methods=['POST'])
@@ -272,8 +289,8 @@ def get_workorder_operations2():
             # we call get_workorder_operation endpoint on the same service to get details of work order
             wo_operations = requests.get(f'http://localhost:5000/workorderoperation/{order_id}/{project_id}')
             wo_operations.raise_for_status()
-            item['work_order_operations'] = json.loads(wo_operations.text)
-            yield json.dumps(item)
+            item['work_order_operations'] = rapidjson.loads(wo_operations.text)
+            yield rapidjson.dumps(item)
         yield ']'
 
     return Response(response=enrich_with_workorder_operations(input_items), mimetype=CT)
@@ -296,7 +313,7 @@ if __name__ == '__main__':
             'log.screen': False,
             'server.socket_port': PORT,
             'server.socket_host': '0.0.0.0',
-            'server.thread_pool': 10,
+            'server.thread_pool': 32,
             'server.max_request_body_size': 0
         })
 
