@@ -99,7 +99,7 @@ def get_entities_per_project(projects, path, args):
             exc_flag = "un"
             if response.text:
                 logging.error(f'Response: {response.text}')
-            if response.status_code <= 500:
+            if response.status_code >= 500:
                 raise exc
 
         logging.debug(f"project {str(project)} executed {exc_flag}successfully")
