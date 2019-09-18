@@ -188,9 +188,12 @@ def put(path):
     responses = []
     req_entities = request.get_json()
     for entity in req_entities:
-        project = str(entity["project_id"])
+        project = entity.get("project_id")
+        if not project:
+            raise ValueError("project_id must be presented in input entity")
+
         data = entity["data"]
-        path = URL + path + project
+        path = URL + path + str(project)
 
         logging.info(f"url: {path}")
 
