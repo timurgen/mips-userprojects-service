@@ -175,7 +175,7 @@ def receiver():
     try:
         return Response(generate(req_entities), mimetype=CT)
     except BaseException as exc:
-        logging.warning(f"Exception {exc} occurred during execution of receiver function")
+        logging.warning(f"exception {exc} occurred during execution of receiver function")
         return Response(status=500, response="An error occurred during transform of input")
 
 
@@ -183,33 +183,34 @@ def receiver():
 def put(path):
     """
     HTTP transform POST handler
+    :param path: must have trailing slash
     :return:
     """
-    responses = []
     req_entities = request.get_json()
+    mips_auth = HTTPBasicAuth(USERNAME, PASSWORD)
     for entity in req_entities:
+
         project = entity.get("project_id")
+
         if not project:
             raise ValueError("project_id must be presented in input entity")
 
         data = entity["data"]
         path = URL + path + str(project)
 
-        logging.info(f"url: {path}")
-
-        # Generate PUT operation
         try:
-            logging.info(f"trying post operation on id: {project}")
-            response = requests.put(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS,
-                                    auth=HTTPBasicAuth(USERNAME, PASSWORD))
+            logging.info(f"trying post operation to: {path}")
+            response = requests.post(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS, auth=mips_auth)
             response.raise_for_status()
-            responses.append(dict({project: rapidjson.loads(response.text)}))
+            entity['transfer_status'] = rapidjson.loads(response.text)
         except requests.exceptions.HTTPError as exc:
-            logging.error("Exception occurred on PUT operation on '%s': '%s'", path, exc)
+            logging.error(f"exception '{exc}' occurred on POST operation on '{path}'")
+            if response.text:
+                logging.error(f"error message: {response.text}")
+                logging.error(f"input entity: {entity}")
             return Response(status=response.status_code, response="An error occurred during transform of input")
 
-    logging.info(f"responses : {responses}")
-    return Response(response=rapidjson.dumps(responses), mimetype=CT)
+    return Response(response=rapidjson.dumps(req_entities), mimetype=CT)
 
 
 @APP.route("/<path:path>", methods=["GET"])
