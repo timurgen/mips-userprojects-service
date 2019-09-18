@@ -196,7 +196,7 @@ def put(path):
             raise ValueError("project_id must be presented in input entity")
 
         data = entity["data"]
-        path = URL + path + project
+        path = URL + path + str(project)
 
         try:
             logging.info(f"trying post operation to: {path}")
