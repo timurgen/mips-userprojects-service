@@ -23,7 +23,7 @@ DATA_KEY = ENV("data_key")
 LOG_LEVEL = ENV('LOG_LEVEL', "INFO")
 PORT = int(ENV('PORT', '5000'))
 CT = 'application/json'
-MIPS_REQUEST_HEADERS = {'Content-Type': CT}
+MIPS_REQUEST_HEADERS = {'Content-Type': CT, 'Accept': CT}
 
 # these config params needed to fetch work order operations
 # through a HTTP transformation from "workorder" pipe
@@ -194,15 +194,21 @@ def put(path):
 
         if not project:
             raise ValueError("project_id must be presented in input entity")
-
+        operation = entity["operation"].lower()
+        response_entity = []
+        response_entity["_id"] = entity["_id"]
         data = entity["data"]
         path = URL + path + str(project)
 
         try:
             logging.info(f"trying post operation to: {path}")
-            response = requests.post(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS, auth=mips_auth)
+            if operation == "post":
+                response = requests.post(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS, auth=mips_auth)
+            if operation == "put":
+                response = requests.put(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS, auth=mips_auth)
             response.raise_for_status()
             entity['transfer_status'] = rapidjson.loads(response.text)
+            response_entity['response'] = rapidjson.loads(response.text)
         except requests.exceptions.HTTPError as exc:
             logging.error(f"exception '{exc}' occurred on POST operation on '{path}'")
             if response.text:
@@ -210,7 +216,7 @@ def put(path):
                 logging.error(f"input entity: {entity}")
             return Response(status=response.status_code, response="An error occurred during transform of input")
 
-    return Response(response=rapidjson.dumps(req_entities), mimetype=CT)
+    return Response(response=rapidjson.dumps(response_entity), mimetype=CT)
 
 
 @APP.route("/<path:path>", methods=["GET"])
