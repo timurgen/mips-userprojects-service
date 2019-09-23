@@ -195,8 +195,6 @@ def put(path):
         if not project:
             raise ValueError("project_id must be presented in input entity")
         operation = entity["operation"].lower()
-        response_entity = dict
-        response_entity["_id"] = entity["_id"]
         data = entity["data"]
         path = URL + path + str(project)
 
@@ -208,7 +206,6 @@ def put(path):
                 response = requests.put(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS, auth=mips_auth)
             response.raise_for_status()
             entity['transfer_status'] = rapidjson.loads(response.text)
-            response_entity['response'] = rapidjson.loads(response.text)
         except requests.exceptions.HTTPError as exc:
             logging.error(f"exception '{exc}' occurred on POST operation on '{path}'")
             if response.text:
@@ -216,7 +213,7 @@ def put(path):
                 logging.error(f"input entity: {entity}")
             return Response(status=response.status_code, response="An error occurred during transform of input")
 
-    return Response(response=rapidjson.dumps([response_entity]), mimetype=CT)
+    return Response(response=rapidjson.dumps(req_entities), mimetype=CT)
 
 
 @APP.route("/<path:path>", methods=["GET"])
