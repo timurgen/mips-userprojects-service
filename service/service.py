@@ -195,7 +195,7 @@ def put(path):
         if not project:
             raise ValueError("project_id must be presented in input entity")
         operation = entity["operation"].lower()
-        response_entity = []
+        response_entity = dict
         response_entity["_id"] = entity["_id"]
         data = entity["data"]
         path = URL + path + str(project)
@@ -216,7 +216,7 @@ def put(path):
                 logging.error(f"input entity: {entity}")
             return Response(status=response.status_code, response="An error occurred during transform of input")
 
-    return Response(response=rapidjson.dumps(response_entity), mimetype=CT)
+    return Response(response=rapidjson.dumps([response_entity]), mimetype=CT)
 
 
 @APP.route("/<path:path>", methods=["GET"])
