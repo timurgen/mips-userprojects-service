@@ -1,4 +1,4 @@
-FROM python:3-alpine
+FROM python:3.7-alpine
 MAINTAINER Tarjei N Skrede "tarjei.skrede@sesam.io"
 
 COPY ./service /service
