@@ -7,6 +7,7 @@ import logging
 import requests
 from requests.auth import HTTPBasicAuth
 from flask import Flask, Response, request
+from sesamutils.flask import serve
 import rapidjson
 
 APP = Flask(__name__)
@@ -323,18 +324,4 @@ if __name__ == '__main__':
     if IS_DEBUG_ENABLED:
         APP.run(debug=IS_DEBUG_ENABLED, host='0.0.0.0', port=PORT)
     else:
-        import cherrypy
-
-        cherrypy.tree.graft(APP, '/')
-        cherrypy.config.update({
-            'environment': 'production',
-            'engine.autoreload_on': True,
-            'log.screen': False,
-            'server.socket_port': PORT,
-            'server.socket_host': '0.0.0.0',
-            'server.thread_pool': 32,
-            'server.max_request_body_size': 0
-        })
-
-        cherrypy.engine.start()
-        cherrypy.engine.block()
+        serve(APP, port=PORT, config={'server.thread_pool': 32, 'server.max_request_body_size': 0})
