@@ -7,6 +7,7 @@ import logging
 import requests
 from requests.auth import HTTPBasicAuth
 from flask import Flask, Response, request
+from sesamutils.flask import serve
 import rapidjson
 
 APP = Flask(__name__)
@@ -27,8 +28,13 @@ MIPS_REQUEST_HEADERS = {'Content-Type': CT, 'Accept': CT}
 
 # these config params needed to fetch work order operations
 # through a HTTP transformation from "workorder" pipe
+
+# where to take input project id from
 TRANSFORM_PROJECT_ID = ENV('TRANSFORM_PROJECT_ID', 'mips-workorder:ProjectId')
+# where to take input workorder id from
 TRANSFORM_WORKORDER_ID = ENV('TRANSFORM_WORKORDER_ID', 'mips-workorder:Id')
+# where to place fetched workorder operations
+TRANSFORM_WO_OP_ATTR = ENV('TRANSFORM_WO_OP_ATTR', 'work_order_operations')
 
 
 def expand_entity(entity):
@@ -284,6 +290,7 @@ def get_workorder_operations2():
     :return:
     """
     input_items = request.get_json()
+    logging.debug(f'processing batch of {len(input_items)} entities')
 
     def enrich_with_workorder_operations(item_list):
         yield '['
@@ -296,10 +303,16 @@ def get_workorder_operations2():
             logging.debug(item)
             project_id = item[TRANSFORM_PROJECT_ID]
             order_id = item[TRANSFORM_WORKORDER_ID]
+
             # we call get_workorder_operation endpoint on the same service to get details of work order
+            logging.debug(f'requesting workorder operations for order {order_id}, project {project_id}')
             wo_operations = requests.get(f'http://localhost:5000/workorderoperation/{order_id}/{project_id}')
             wo_operations.raise_for_status()
+
             item['work_order_operations'] = rapidjson.loads(wo_operations.text)
+            woop_len = len(item[TRANSFORM_WO_OP_ATTR])
+            logging.debug(f'request completed for order {order_id}, project {project_id}, got {woop_len} lines')
+
             yield rapidjson.dumps(item)
         yield ']'
 
@@ -314,18 +327,4 @@ if __name__ == '__main__':
     if IS_DEBUG_ENABLED:
         APP.run(debug=IS_DEBUG_ENABLED, host='0.0.0.0', port=PORT)
     else:
-        import cherrypy
-
-        cherrypy.tree.graft(APP, '/')
-        cherrypy.config.update({
-            'environment': 'production',
-            'engine.autoreload_on': True,
-            'log.screen': False,
-            'server.socket_port': PORT,
-            'server.socket_host': '0.0.0.0',
-            'server.thread_pool': 32,
-            'server.max_request_body_size': 0
-        })
-
-        cherrypy.engine.start()
-        cherrypy.engine.block()
+        serve(APP, port=PORT, config={'server.thread_pool': 32, 'server.max_request_body_size': 0})
