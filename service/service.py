@@ -25,6 +25,7 @@ PROJECT_KEY = ENV("project_key")
 DATA_KEY = ENV("data_key")
 LOG_LEVEL = ENV('LOG_LEVEL', "INFO")
 PORT = int(ENV('PORT', '5000'))
+WORKERS = int(ENV("MS_WORKER_THREADS", '32'))
 CT = 'application/json'
 MIPS_REQUEST_HEADERS = {'Content-Type': CT, 'Accept': CT}
 
@@ -359,4 +360,4 @@ if __name__ == '__main__':
     if IS_DEBUG_ENABLED:
         APP.run(debug=IS_DEBUG_ENABLED, host='0.0.0.0', port=PORT)
     else:
-        serve(APP, port=PORT, config={'server.thread_pool': 32, 'server.max_request_body_size': 0})
+        serve(APP, port=PORT, config={'server.thread_pool': WORKERS, 'server.max_request_body_size': 0})
