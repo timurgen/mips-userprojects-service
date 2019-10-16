@@ -3,12 +3,14 @@
 REST service to fetch data from MISP appliance into Sesam integration platform
 """
 import os
+import io
 import logging
 import requests
 from requests.auth import HTTPBasicAuth
-from flask import Flask, Response, request
+from flask import Flask, Response, request, send_file, abort
 from sesamutils.flask import serve
 import rapidjson
+import base64
 
 APP = Flask(__name__)
 
@@ -317,6 +319,36 @@ def get_workorder_operations2():
         yield ']'
 
     return Response(response=enrich_with_workorder_operations(input_items), mimetype=CT)
+
+
+@APP.route("/file/<path:path>", methods=["GET"])
+def get_file(path):
+    """
+    Endpoint to receive files from MIPS
+    :param path:
+    :return: file stream
+    """
+    file_request_path = URL + path
+    logging.debug(f'serving request to {file_request_path}')
+    response = requests.get(file_request_path, headers=MIPS_REQUEST_HEADERS, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as exc:
+        logging.error(f'{response.text} : {exc}' if response.text else f'{exc}')
+        raise exc
+
+    response_data = rapidjson.loads(response.text)
+    logging.debug(f'response entity received: {response_data}')
+
+    if response_data.get('Data') and response_data.get('Data').get('Contents'):
+        decoded_file_byte = base64.standard_b64decode(response_data.get('Data').get('Contents'))
+        logging.debug(f'file length: {len(decoded_file_byte)}')
+        return send_file(io.BytesIO(decoded_file_byte), mimetype='application/octet-stream')
+
+    error = f"couldn't process MIPS response, response content: {response_data} Data->Contents was expected"
+    logging.warning(error)
+    abort(500, error)
 
 
 if __name__ == '__main__':
