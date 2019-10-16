@@ -1,5 +1,5 @@
 requests==2.22.0
 Flask==1.1.1
-CherryPy==18.1.2
+CherryPy==18.2.0
 python-rapidjson==0.8.0
 sesamutils==0.1.10
