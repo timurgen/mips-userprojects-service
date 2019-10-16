@@ -24,7 +24,7 @@ DATA_KEY = ENV("data_key")
 LOG_LEVEL = ENV('LOG_LEVEL', "INFO")
 PORT = int(ENV('PORT', '5000'))
 CT = 'application/json'
-MIPS_REQUEST_HEADERS = {'Content-Type': CT}
+MIPS_REQUEST_HEADERS = {'Content-Type': CT, 'Accept': CT}
 
 # these config params needed to fetch work order operations
 # through a HTTP transformation from "workorder" pipe
@@ -200,13 +200,16 @@ def put(path):
 
         if not project:
             raise ValueError("project_id must be presented in input entity")
-
+        operation = entity["operation"].lower()
         data = entity["data"]
         path = URL + path + str(project)
 
         try:
             logging.info(f"trying post operation to: {path}")
-            response = requests.post(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS, auth=mips_auth)
+            if operation == "post":
+                response = requests.post(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS, auth=mips_auth)
+            if operation == "put":
+                response = requests.put(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS, auth=mips_auth)
             response.raise_for_status()
             entity['transfer_status'] = rapidjson.loads(response.text)
         except requests.exceptions.HTTPError as exc:
