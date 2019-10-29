@@ -5,9 +5,11 @@ REST service to fetch data from MISP appliance into Sesam integration platform
 import os
 import io
 import logging
+import tempfile
+
 import requests
 from requests.auth import HTTPBasicAuth
-from flask import Flask, Response, request, send_file, abort
+from flask import Flask, Response, request, send_file, abort, after_this_request
 from sesamutils.flask import serve
 import rapidjson
 import base64
@@ -331,7 +333,8 @@ def get_file(path):
     """
     file_request_path = URL + path
     logging.debug(f'serving request to {file_request_path}')
-    response = requests.get(file_request_path, headers=MIPS_REQUEST_HEADERS, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+    response = requests.get(file_request_path, stream=True, headers=MIPS_REQUEST_HEADERS,
+                            auth=HTTPBasicAuth(USERNAME, PASSWORD))
 
     try:
         response.raise_for_status()
@@ -339,13 +342,33 @@ def get_file(path):
         logging.error(f'{response.text} : {exc}' if response.text else f'{exc}')
         raise exc
 
-    response_data = rapidjson.loads(response.text)
-    logging.debug(f'response entity received: {response_data}')
+    # if we have json response with base64 encoded file content
+    response_data = None
+    if response.headers['Content-Type'] == 'application/json':
+        logging.debug(f'got JSON response')
+        response_data = rapidjson.loads(response.text)
+        logging.debug(f'response entity received: {response_data}')
 
-    if response_data.get('Data') and response_data.get('Data').get('Contents'):
-        decoded_file_byte = base64.standard_b64decode(response_data.get('Data').get('Contents'))
-        logging.debug(f'file length: {len(decoded_file_byte)}')
-        return send_file(io.BytesIO(decoded_file_byte), mimetype='application/octet-stream')
+        if response_data.get('Data') and response_data.get('Data').get('Contents'):
+            decoded_file_byte = base64.standard_b64decode(response_data.get('Data').get('Contents'))
+            logging.debug(f'file length: {len(decoded_file_byte)}')
+            return send_file(io.BytesIO(decoded_file_byte), mimetype='application/octet-stream')
+
+    # if we have PDF file back
+    if response.headers['Content-Type'] == 'application/pdf':
+
+        logging.debug(f'got PDF response')
+        fp = tempfile.TemporaryFile()
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                fp.write(chunk)
+        fp.flush()
+
+        def stream_and_remove_file():
+            yield from fp
+            fp.close()
+
+        return Response(stream_and_remove_file(), mimetype='application/pdf')
 
     error = f"couldn't process MIPS response, response content: {response_data} Data->Contents was expected"
     logging.warning(error)
