@@ -9,7 +9,7 @@ import tempfile
 
 import requests
 from requests.auth import HTTPBasicAuth
-from flask import Flask, Response, request, send_file, abort, after_this_request
+from flask import Flask, Response, request, send_file, abort
 from sesamutils.flask import serve
 import rapidjson
 import base64
