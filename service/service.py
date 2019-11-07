@@ -41,6 +41,10 @@ TRANSFORM_WORKORDER_ID = ENV('TRANSFORM_WORKORDER_ID', 'mips-workorder:Id')
 # where to place fetched workorder operations
 TRANSFORM_WO_OP_ATTR = ENV('TRANSFORM_WO_OP_ATTR', 'work_order_operations')
 
+# if this key is presented as query argument in a source pipe then
+# property named ProjectNo with corresponding value will be added to result entity
+ADD_PROJECT_NO = ENV('ADD_PROJECT_NO', 'add_project_no')
+
 
 def expand_entity(entity):
     """
@@ -86,6 +90,10 @@ def get_entities_per_project(projects, path, args):
     logging.info(f"got {len(deduplicated_project_list)} unique projects")
 
     for project in deduplicated_project_list:
+
+        if args.get(ADD_PROJECT_NO):
+            project_no = next(item for item in projects[DATA_KEY] if item[PROJECT_KEY] == project).get('ProjectNo')
+
         if 'all' not in allowed_projects and str(project) not in allowed_projects:
             logging.debug(f'project {project} not in allowed projects and will be skipped')
             continue
@@ -104,6 +112,13 @@ def get_entities_per_project(projects, path, args):
 
             for entity in entities[DATA_KEY]:
                 entity["ProjectId"] = project
+
+                if args.get(ADD_PROJECT_NO) and entity.get("ProjectNo"):
+                    logging.warning(f'ProjectNo property already exixts')
+
+                if args.get(ADD_PROJECT_NO):
+                    entity["ProjectNo"] = project_no
+
                 yield set_id(project, entity, args)
         except requests.exceptions.HTTPError as exc:
             logging.error("exception occurred on GET operation on '%s': '%s'", new_path, exc)
