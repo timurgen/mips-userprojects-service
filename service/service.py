@@ -231,13 +231,18 @@ def put(path):
             if operation == "put":
                 response = requests.put(path, data=rapidjson.dumps(data), headers=MIPS_REQUEST_HEADERS, auth=mips_auth)
             response.raise_for_status()
-            entity['transfer_status'] = rapidjson.loads(response.text)
+            entity['transfer_status'] = 'SUCCESS'
+            entity['transfer_message'] = rapidjson.loads(response.text)
         except requests.exceptions.HTTPError as exc:
             logging.error(f"exception '{exc}' occurred on POST operation on '{path}'")
             if response.text:
+                entity['transfer_message'] = rapidjson.loads(response.text)
                 logging.error(f"error message: {response.text}")
                 logging.error(f"input entity: {entity}")
-            return Response(status=response.status_code, response="An error occurred during transform of input")
+            entity['transfer_status'] = 'FAILED'
+
+        # return Response(status=response.status_code,
+        #                response=f"An error occurred during transform of input due to {response.text}")
 
     return Response(response=rapidjson.dumps(req_entities), mimetype=CT)
 
