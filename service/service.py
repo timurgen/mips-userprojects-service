@@ -307,6 +307,45 @@ def get_workorder_operation(order_id: int, project_id: int):
     return Response(response=stream_json(get(rapidjson.loads(response.text))), mimetype=CT)
 
 
+@APP.route('/deletepunch', methods=['POST'])
+def delete_punch():
+    """
+        HTTP transform POST handler for pipe punch-delete-mips-endpoint
+        :return:
+        """
+    req_entities = request.get_json()
+    mips_auth = HTTPBasicAuth(USERNAME, PASSWORD)
+    for entity in req_entities:
+
+        project = entity.get("project_id")
+        punch_id = entity.get('punchid')
+
+        if not project:
+            raise ValueError("project_id must be presented in input entity")
+        operation = entity["operation"].lower()
+
+        path = f'{URL}completion/v1/commpkg/CheckSheet/Item/Punch/Delete/{punch_id}/{project}'
+
+        try:
+            logging.info(f"trying delete operation to: {path}")
+            if operation == "delete":
+                response = requests.delete(path, headers=MIPS_REQUEST_HEADERS, auth=mips_auth)
+            response.raise_for_status()
+            entity['transfer_status'] = 'SUCCESS'
+            entity['transfer_message'] = rapidjson.loads(response.text)
+        except requests.exceptions.HTTPError as exc:
+            logging.error(f"exception '{exc}' occurred on DELETE operation on '{path}'")
+            if response.text:
+                entity['transfer_message'] = rapidjson.loads(response.text)
+                logging.error(f"error message: {response.text}")
+                logging.error(f"input entity: {entity}")
+            entity['transfer_status'] = 'FAILED'
+
+        # return Response(status=response.status_code,
+        #                response=f"An error occurred during transform of input due to {response.text}")
+
+    return Response(response=rapidjson.dumps(req_entities), mimetype=CT)
+
 @APP.route('/workorderoperation', methods=['POST'])
 def get_workorder_operations2():
     """
