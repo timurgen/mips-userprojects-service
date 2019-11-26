@@ -87,7 +87,7 @@ def get_entities_per_project(projects, path, args):
         allowed_projects = args.get('projects').split(',')
 
     logging.debug(f'allowed projects {allowed_projects}')
-    logging.info(f"got {len(deduplicated_project_list)} unique projects")
+    logging.debug(f"got {len(deduplicated_project_list)} unique projects")
 
     for project in deduplicated_project_list:
 
@@ -276,7 +276,7 @@ def get_projects(path):
     """
     path = URL + path
     try:
-        logging.info("Trying GET operation on : '%s'", path)
+        logging.debug("Trying GET operation on : '%s'", path)
         response = requests.get(path, headers=MIPS_REQUEST_HEADERS, auth=HTTPBasicAuth(USERNAME, PASSWORD))
         response.raise_for_status()
     except requests.exceptions.HTTPError as exc:
