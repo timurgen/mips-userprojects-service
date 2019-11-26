@@ -429,7 +429,7 @@ def get_file(path):
 
         return Response(stream_and_remove_file(), mimetype='application/pdf')
 
-    error = f"couldn't process MIPS response, response content: {response_data} Data->Contents was expected"
+    error = f"couldn't process MIPS response, response headers: {response.headers}"
     logging.warning(error)
     abort(500, error)
 
