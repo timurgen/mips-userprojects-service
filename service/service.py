@@ -403,7 +403,7 @@ def get_file(path):
 
     # if we have json response with base64 encoded file content
     response_data = None
-    if response.headers['Content-Type'] == 'application/json':
+    if response.headers['Content-Type'].startswith('application/json'):
         logging.debug(f'got JSON response')
         response_data = rapidjson.loads(response.text)
         logging.debug(f'response entity received: {response_data}')
